@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Jawara Technology — Price Lookup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+<style>
+/* ── CSS Variables ─────────────────────────────────────────── */
+:root {
+  --bg:          #0d0f14;
+  --surface:     #161a22;
+  --surface2:    #1e2330;
+  --border:      rgba(255,255,255,0.07);
+  --accent:      #4f8cff;
+  --accent2:     #a78bfa;
+  --text:        #e8eaf0;
+  --muted:       #7a8299;
+  --price:       #34d399;
+  --radius:      14px;
+  --shadow:      0 8px 40px rgba(0,0,0,0.5);
+}
+
+/* ── Reset & Base ──────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ── Watermark Logo ────────────────────────────────────────── */
+body::before {
+  content: '📱';
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(180px, 40vw, 380px);
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: 0;
+  filter: grayscale(1);
+}
+
+/* Text watermark behind content */
+.watermark-text {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-20deg);
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(60px, 14vw, 160px);
+  font-weight: 800;
+  color: rgba(255,255,255,0.025);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 0;
+  letter-spacing: -0.02em;
+  user-select: none;
+}
+
+/* ── Layout ────────────────────────────────────────────────── */
+.page {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 20px 80px;
+}
+
+/* ── Header ────────────────────────────────────────────────── */
+header {
+  text-align: center;
+  margin-bottom: 40px;
+  animation: fadeDown 0.6s ease both;
+}
+
+.logo-mark {
+  font-size: 2.2rem;
+  margin-bottom: 8px;
+  display: block;
+}
+
+header h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(1.8rem, 5vw, 2.8rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+header p {
+  color: var(--muted);
+  font-size: 0.95rem;
+  margin-top: 6px;
+  font-weight: 300;
+}
+
+/* ── Search Box ─────────────────────────────────────────────── */
+.search-wrap {
+  width: 100%;
+  max-width: 640px;
+  animation: fadeDown 0.6s 0.1s ease both;
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 18px;
+  color: var(--muted);
+  font-size: 1.1rem;
+  pointer-events: none;
+  transition: color 0.2s;
+}
+
+#searchInput {
+  width: 100%;
+  padding: 18px 18px 18px 50px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 50px;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 1.05rem;
+  outline: none;
+  transition: border-color 0.25s, box-shadow 0.25s;
+  box-shadow: var(--shadow);
+}
+
+#searchInput::placeholder { color: var(--muted); }
+
+#searchInput:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(79,140,255,0.12), var(--shadow);
+}
+
+#searchInput:focus + .search-icon,
+.search-box:focus-within .search-icon {
+  color: var(--accent);
+}
+
+.clear-btn {
+  position: absolute;
+  right: 16px;
+  background: var(--surface2);
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 1rem;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+}
+.clear-btn:hover { background: var(--border); color: var(--text); }
+.clear-btn.visible { display: flex; }
+
+/* ── Hint chips ─────────────────────────────────────────────── */
+.hints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  justify-content: center;
+  animation: fadeDown 0.6s 0.2s ease both;
+}
+
+.hint-chip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 50px;
+  padding: 5px 14px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+  user-select: none;
+}
+.hint-chip:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Results Container ──────────────────────────────────────── */
+#results {
+  width: 100%;
+  max-width: 640px;
+  margin-top: 28px;
+}
+
+/* ── Status messages ────────────────────────────────────────── */
+.status-msg {
+  text-align: center;
+  color: var(--muted);
+  padding: 40px 0;
+  font-size: 0.95rem;
+  animation: fadeIn 0.3s ease;
+}
+
+.status-msg .big-icon { font-size: 2.5rem; margin-bottom: 10px; display: block; }
+
+/* ── Group block ────────────────────────────────────────────── */
+.group {
+  margin-bottom: 22px;
+  animation: fadeIn 0.3s ease both;
+}
+
+.group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+  padding: 0 4px;
+}
+
+.group-header .g-icon { font-size: 1rem; }
+
+.group-header .g-count {
+  margin-left: auto;
+  background: var(--surface2);
+  border-radius: 50px;
+  padding: 2px 9px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* ── Product Card ───────────────────────────────────────────── */
+.product-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+
+.product-card:hover {
+  border-color: rgba(79,140,255,0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+}
+
+.product-info { flex: 1; min-width: 0; }
+
+.product-name {
+  font-weight: 500;
+  font-size: 0.97rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.product-meta {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 2px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.stock-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border-radius: 50px;
+}
+.in-stock  { background: rgba(52,211,153,0.12); color: #34d399; }
+.low-stock { background: rgba(251,191,36,0.12); color: #fbbf24; }
+.no-stock  { background: rgba(239,68,68,0.1);   color: #f87171; }
+
+.product-price {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--price);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Result summary line ────────────────────────────────────── */
+.result-summary {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-bottom: 16px;
+  padding: 0 4px;
+  animation: fadeIn 0.3s ease;
+}
+
+.result-summary span { color: var(--accent); font-weight: 500; }
+
+/* ── Admin link ─────────────────────────────────────────────── */
+.admin-link-wrap {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 10;
+}
+
+.admin-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 50px;
+  padding: 10px 18px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.82rem;
+  transition: border-color 0.2s, color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+.admin-link:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: 0 4px 24px rgba(79,140,255,0.15);
+}
+
+/* ── Spinner ─────────────────────────────────────────────────── */
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin: 0 auto 8px;
+}
+
+/* ── Animations ─────────────────────────────────────────────── */
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .page { padding: 32px 16px 80px; }
+  .product-card { padding: 14px 16px; }
+  .product-name { font-size: 0.9rem; }
+  .admin-link-wrap { bottom: 16px; right: 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Watermark -->
+<div class="watermark-text" aria-hidden="true">JAWARA</div>
+
+<div class="page">
+
+  <!-- Header -->
+  <header>
+    <span class="logo-mark">📱</span>
+    <h1>JAWARA TECHNOLOGY</h1>
+    <p>Search phones &amp; accessories — instant prices</p>
+  </header>
+
+  <!-- Search -->
+  <div class="search-wrap">
+    <div class="search-box">
+      <input
+        type="search"
+        id="searchInput"
+        placeholder="Search phone or accessory..."
+        autocomplete="off"
+        spellcheck="false"
+        autofocus
+      />
+      <span class="search-icon" aria-hidden="true">🔍</span>
+      <button class="clear-btn" id="clearBtn" title="Clear search" aria-label="Clear search">✕</button>
+    </div>
+
+    <!-- Quick search hint chips -->
+    <div class="hints" aria-label="Quick search suggestions">
+      <span class="hint-chip" tabindex="0">iPhone 13</span>
+      <span class="hint-chip" tabindex="0">Samsung S23</span>
+      <span class="hint-chip" tabindex="0">Tecno Camon</span>
+      <span class="hint-chip" tabindex="0">Power Bank</span>
+      <span class="hint-chip" tabindex="0">Charger</span>
+      <span class="hint-chip" tabindex="0">AirPods</span>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="results" aria-live="polite" aria-label="Search results"></div>
+
+</div>
+
+<!-- Admin Panel Link -->
+<div class="admin-link-wrap">
+  <a href="admin.php" class="admin-link">
+    ⚙️ Admin Panel
+  </a>
+</div>
+
+<!-- ── AJAX Live Search ──────────────────────────────────────── -->
+<script>
+(function () {
+  const input     = document.getElementById('searchInput');
+  const clearBtn  = document.getElementById('clearBtn');
+  const results   = document.getElementById('results');
+  const hints     = document.querySelectorAll('.hint-chip');
+
+  let debounceTimer = null;
+  let currentXHR    = null;
+
+  /* ── Format price with commas ───────────────────────────── */
+  function formatPrice(num) {
+    return Number(num).toLocaleString('en-US', { minimumFractionDigits: 0 });
+  }
+
+  /* ── Stock badge ────────────────────────────────────────── */
+  function stockBadge(qty) {
+    const q = parseInt(qty, 10);
+    if (q === 0) return '<span class="stock-badge no-stock">⛔ Out of stock</span>';
+    if (q <= 3)  return `<span class="stock-badge low-stock">⚠️ ${q} left</span>`;
+    return `<span class="stock-badge in-stock">✅ In stock</span>`;
+  }
+
+  /* ── Render results ─────────────────────────────────────── */
+  function renderResults(data) {
+    if (!data.grouped || data.grouped.length === 0) {
+      results.innerHTML = `
+        <div class="status-msg">
+          <span class="big-icon">🔎</span>
+          No products found for "<strong>${escHtml(data.query)}</strong>". Try a different search.
+        </div>`;
+      return;
+    }
+
+    let html = `<div class="result-summary"><span>${data.count}</span> product${data.count !== 1 ? 's' : ''} found</div>`;
+
+    data.grouped.forEach(function (group) {
+      html += `
+        <div class="group">
+          <div class="group-header">
+            <span class="g-icon">${group.icon}</span>
+            ${escHtml(group.label)}
+            <span class="g-count">${group.items.length}</span>
+          </div>`;
+
+      group.items.forEach(function (item) {
+        html += `
+          <div class="product-card">
+            <div class="product-info">
+              <div class="product-name">${escHtml(item.full_name)}</div>
+              <div class="product-meta">
+                <span>${escHtml(item.category)}</span>
+                ${stockBadge(item.quantity)}
+              </div>
+            </div>
+            <div class="product-price">D ${formatPrice(item.price)}</div>
+          </div>`;
+      });
+
+      html += `</div>`;
+    });
+
+    results.innerHTML = html;
+  }
+
+  /* ── Show loading ───────────────────────────────────────── */
+  function showLoading() {
+    results.innerHTML = `
+      <div class="status-msg">
+        <div class="spinner"></div>
+        Searching...
+      </div>`;
+  }
+
+  /* ── Show idle state ────────────────────────────────────── */
+  function showIdle() {
+    results.innerHTML = `
+      <div class="status-msg">
+        <span class="big-icon">🏪</span>
+        Type above to search phones &amp; accessories
+      </div>`;
+  }
+
+  /* ── Escape HTML ────────────────────────────────────────── */
+  function escHtml(str) {
+    return String(str ?? '')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  /* ── AJAX search call ───────────────────────────────────── */
+  function doSearch(query) {
+    if (query.trim() === '') { showIdle(); return; }
+
+    showLoading();
+
+    if (currentXHR) currentXHR.abort();
+
+    currentXHR = new XMLHttpRequest();
+    currentXHR.open('GET', 'search.php?q=' + encodeURIComponent(query), true);
+
+    currentXHR.onload = function () {
+      if (currentXHR.status === 200) {
+        try {
+          const data = JSON.parse(currentXHR.responseText);
+          renderResults(data);
+        } catch (e) {
+          results.innerHTML = '<div class="status-msg">Error reading response. Please try again.</div>';
+        }
+      } else {
+        results.innerHTML = '<div class="status-msg">Server error. Please try again.</div>';
+      }
+    };
+
+    currentXHR.onerror = function () {
+      results.innerHTML = '<div class="status-msg">Network error. Please check your connection.</div>';
+    };
+
+    currentXHR.send();
+  }
+
+  /* ── Debounced input handler ────────────────────────────── */
+  input.addEventListener('input', function () {
+    const q = input.value.trim();
+    clearBtn.classList.toggle('visible', q.length > 0);
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(function () { doSearch(q); }, 280);
+  });
+
+  /* ── Clear button ───────────────────────────────────────── */
+  clearBtn.addEventListener('click', function () {
+    input.value = '';
+    clearBtn.classList.remove('visible');
+    showIdle();
+    input.focus();
+  });
+
+  /* ── Hint chips ─────────────────────────────────────────── */
+  hints.forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      input.value = chip.textContent;
+      clearBtn.classList.add('visible');
+      doSearch(chip.textContent);
+    });
+    chip.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') chip.click();
+    });
+  });
+
+  /* ── Initial state ──────────────────────────────────────── */
+  showIdle();
+
+})();
+</script>
+</body>
+</html>
